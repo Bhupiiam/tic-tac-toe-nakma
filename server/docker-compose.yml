@@ -1,43 +1,35 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:12.2-alpine
-    container_name: template_nk_postgres
-    restart: always
-    environment:
-      POSTGRES_DB: nakama
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: localdb
+  cockroachdb:
+    image: cockroachdb/cockroach:v23.1.6
+    command: start-single-node --insecure
     ports:
-      - '5432:5432'
+      - "26257:26257"
+      - "8080:8080"
     volumes:
-      - data:/var/lib/postgresql/data
+      - ./data:/cockroach/cockroach-data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d nakama']
+      test: ["CMD-SHELL", "cockroach sql --insecure --execute='SHOW DATABASES;'"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   nakama:
-    build: .
-    container_name: template_nk_backend
+    image: heroiclabs/nakama:3.17.0
     depends_on:
-      postgres:
+      cockroachdb:
         condition: service_healthy
     entrypoint:
-      - '/bin/sh'
-      - '-ecx'
+      - "/bin/sh"
+      - "-ecx"
       - >
-        /nakama/nakama migrate up --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable &&
-        exec /nakama/nakama --config /nakama/data/local.yml --database.address postgres:localdb@postgres:5432/nakama?sslmode=disable --logger.level info --session.token_expiry_sec 7200
+        /nakama/nakama migrate up --database.address root@cockroachdb:26257 &&
+        exec /nakama/nakama --name nakama1 --database.address root@cockroachdb:26257 --logger.level info --session.token_expiry_sec 7200
     ports:
-      - '7349:7349'
-      - '7350:7350'
-      - '7351:7351'
+      - "7349:7349"
+      - "7350:7350"
+      - "7351:7351"
     restart: unless-stopped
     volumes:
-      - .:/nakama/data
-
-volumes:
-  data:
+      - ./:/nakama/data
