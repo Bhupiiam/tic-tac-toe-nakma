@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: nakama-server
+    env: docker
+    rootDir: server
+    plan: starter
