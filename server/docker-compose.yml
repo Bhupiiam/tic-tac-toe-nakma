@@ -1,35 +1,17 @@
 version: '3.8'
 
 services:
-  cockroachdb:
-    image: cockroachdb/cockroach:v23.1.6
-    command: start-single-node --insecure
-    ports:
-      - "26257:26257"
-      - "8080:8080"
-    volumes:
-      - ./data:/cockroach/cockroach-data
-    healthcheck:
-      test: ["CMD-SHELL", "cockroach sql --insecure --execute='SHOW DATABASES;'"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   nakama:
     image: heroiclabs/nakama:3.17.0
-    depends_on:
-      cockroachdb:
-        condition: service_healthy
+    container_name: nakama_backend
     entrypoint:
       - "/bin/sh"
       - "-ecx"
       - >
-        /nakama/nakama migrate up --database.address root@cockroachdb:26257 &&
-        exec /nakama/nakama --name nakama1 --database.address root@cockroachdb:26257 --logger.level info --session.token_expiry_sec 7200
+        /nakama/nakama migrate up --database.address "postgresql://bhupi:xkgZ6bLb4xuYDGMfq9hZNg@dust-fish-18126.j77.aws-ap-south-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full" &&
+        exec /nakama/nakama --name nakama1 --database.address "postgresql://bhupender:yourpassword@free-tier14.aws-ap-south-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full" --logger.level info
     ports:
       - "7349:7349"
       - "7350:7350"
       - "7351:7351"
     restart: unless-stopped
-    volumes:
-      - ./:/nakama/data
